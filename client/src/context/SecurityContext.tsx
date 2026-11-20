@@ -3,7 +3,8 @@ import {
   Person, Camera, RoomZone, SecurityAlert, SecurityRule, 
   BuildingStats, AppearanceSnapshot, MovementEvent, PersonRole, AccessStatus, 
   AlertSeverity, AlertType, AlertStatus, CameraConnectPayload, CameraTestPayload,
-  CameraBrand, StreamType, ConnectionStatus, BuildingProfile, FloorProfile, CanvasShape, BlueprintType
+  CameraBrand, StreamType, ConnectionStatus, BuildingProfile, FloorProfile, CanvasShape, BlueprintType,
+  AttendanceRecord, AttendanceStatus
 } from '../types';
 import { getApiBase, getWsUrl, getCameraCaptureUrl } from '../config/api';
 
@@ -15,6 +16,7 @@ interface SecurityContextType {
   alerts: SecurityAlert[];
   rules: SecurityRule[];
   buildings: BuildingProfile[];
+  attendanceRecords: AttendanceRecord[];
   selectedPerson: Person | null;
   selectedPersonId: string;
   selectedCamera: Camera | null;
@@ -42,6 +44,12 @@ interface SecurityContextType {
   enrollPerson: (data: any) => Promise<Person | null>;
   resolveAlert: (alertId: string, notes: string) => Promise<void>;
   simulateAlert: (type: AlertType, roomName?: string) => Promise<void>;
+  // Attendance Intelligence Actions
+  markAttendance: (personId: string, status: AttendanceStatus, notes?: string, course?: string, room?: string) => Promise<AttendanceRecord | null>;
+  triggerAttendanceScan: () => Promise<void>;
+  exportAttendanceCSV: (course?: string) => void;
+  fetchPersonTimeline: (personId: string) => Promise<MovementEvent[]>;
+  fetchPersonAppearances: (personId: string) => Promise<AppearanceSnapshot[]>;
   // Camera Actions
   connectCamera: (payload: CameraConnectPayload) => Promise<Camera>;
   connectLaptopWebcam: (deviceIndex?: number, roomName?: string) => Promise<Camera>;
@@ -78,6 +86,105 @@ const DEFAULT_STATS: BuildingStats = {
   },
 };
 
+const DEFAULT_ATTENDANCE: AttendanceRecord[] = [
+  {
+    id: "att-rec-1",
+    person_id: "STU-10087",
+    student_id: "STU-2026-0104",
+    name: "Rahul Sharma",
+    role: "Student",
+    department: "Computer Science & Engineering",
+    course: "CS301 - Computer Vision & AI",
+    room: "Lecture Hall 101",
+    status: "Verified",
+    timestamp: "09:12:04 AM",
+    confidence_score: 0.98,
+    photo_url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=300&fit=crop&crop=face",
+    verified_camera_id: "CAM-021",
+    notes: "Real-time facial vector matched standard master vector (98.2% similarity)."
+  },
+  {
+    id: "att-rec-2",
+    person_id: "STU-10092",
+    student_id: "STU-2026-0142",
+    name: "Ananya Verma",
+    role: "Student",
+    department: "Computer Science & Engineering",
+    course: "CS301 - Computer Vision & AI",
+    room: "Lecture Hall 101",
+    status: "Verified",
+    timestamp: "09:14:18 AM",
+    confidence_score: 0.97,
+    photo_url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&h=300&fit=crop&crop=face",
+    verified_camera_id: "CAM-021",
+    notes: "Verified biometrically at classroom portal."
+  },
+  {
+    id: "att-rec-3",
+    person_id: "FAC-2001",
+    student_id: "FAC-2020-0012",
+    name: "Dr. Rajesh Iyer",
+    role: "Professor",
+    department: "AI & Robotics Department",
+    course: "CS301 - Computer Vision & AI",
+    room: "Lecture Hall 101",
+    status: "Verified",
+    timestamp: "08:55:00 AM",
+    confidence_score: 0.99,
+    photo_url: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300&h=300&fit=crop&crop=face",
+    verified_camera_id: "CAM-021",
+    notes: "Course Instructor commenced lecture on time."
+  },
+  {
+    id: "att-rec-4",
+    person_id: "STU-10105",
+    student_id: "STU-2026-0177",
+    name: "Rohan Gupta",
+    role: "Student",
+    department: "Computer Science & Engineering",
+    course: "CS301 - Computer Vision & AI",
+    room: "Lecture Hall 101",
+    status: "Present",
+    timestamp: "09:18:22 AM",
+    confidence_score: 0.95,
+    photo_url: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300&h=300&fit=crop&crop=face",
+    verified_camera_id: "CAM-021",
+    notes: "Automated attendance marked."
+  },
+  {
+    id: "att-rec-5",
+    person_id: "STU-10118",
+    student_id: "STU-2026-0188",
+    name: "Neha Patel",
+    role: "Student",
+    department: "Data Science & Analytics",
+    course: "CS301 - Computer Vision & AI",
+    room: "Lecture Hall 101",
+    status: "Late",
+    timestamp: "09:35:10 AM",
+    confidence_score: 0.94,
+    photo_url: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&h=300&fit=crop&crop=face",
+    verified_camera_id: "CAM-021",
+    notes: "Tardy arrival logged (Grace period expired by 20m)."
+  },
+  {
+    id: "att-rec-6",
+    person_id: "STU-10144",
+    student_id: "STU-2026-0219",
+    name: "Kabir Mehta",
+    role: "Student",
+    department: "Computer Science & Engineering",
+    course: "CS301 - Computer Vision & AI",
+    room: "Lecture Hall 101",
+    status: "Proxy Flagged",
+    timestamp: "09:12:05 AM",
+    confidence_score: 0.62,
+    photo_url: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=300&h=300&fit=crop&crop=face",
+    verified_camera_id: "CAM-021",
+    notes: "Tailgating anomaly detected: entered doorway simultaneously with STU-10087 (<1.2s gap)."
+  }
+];
+
 // Generic list deduplication helper
 function upsertItem<T>(list: T[], item: T, key: keyof T): T[] {
   const index = list.findIndex(x => x[key] === item[key]);
@@ -99,12 +206,13 @@ export const SecurityProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [alerts, setAlerts] = useState<SecurityAlert[]>([]);
   const [rules, setRules] = useState<SecurityRule[]>([]);
   const [buildings, setBuildings] = useState<BuildingProfile[]>([]);
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>(DEFAULT_ATTENDANCE);
   
-  const [selectedPersonId, setSelectedPersonId] = useState<string>('P-10087');
+  const [selectedPersonId, setSelectedPersonId] = useState<string>('STU-10087');
   const [selectedCameraId, setSelectedCameraId] = useState<string | null>('CAM-021');
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [activeFloor, setActiveFloor] = useState<string>('Floor 2');
-  const [activeBuilding, setActiveBuilding] = useState<string>('Corporate Tower A');
+  const [activeBuilding, setActiveBuilding] = useState<string>('Academic Block A');
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [isLockdownMode, setIsLockdownMode] = useState<boolean>(false);
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState<boolean>(false);
@@ -166,9 +274,17 @@ export const SecurityProvider: React.FC<{ children: ReactNode }> = ({ children }
               setAlerts(msg.data.alerts);
               setRules(msg.data.rules);
               if (msg.data.buildings) setBuildings(msg.data.buildings);
+              if (msg.data.attendance && Array.isArray(msg.data.attendance) && msg.data.attendance.length > 0) {
+                setAttendanceRecords(msg.data.attendance);
+              }
             } else if (msg.type === 'TICK_UPDATE') {
               setStats(msg.data.stats);
               setPersons(msg.data.persons);
+            } else if (msg.type === 'ATTENDANCE_UPDATED') {
+              setAttendanceRecords(prev => upsertItem(prev, msg.data, 'person_id'));
+              setPersons(prev => prev.map(p => p.person_id === msg.data.person_id ? { ...p, attendance_status: msg.data.status, attendance_time: msg.data.timestamp } : p));
+            } else if (msg.type === 'ATTENDANCE_SCAN_COMPLETED') {
+              setAttendanceRecords(msg.data);
             } else if (msg.type === 'NEW_ALERT') {
               setAlerts(prev => upsertItem(prev, msg.data, 'id'));
               playAlertSound(msg.data.severity);
@@ -236,6 +352,20 @@ export const SecurityProvider: React.FC<{ children: ReactNode }> = ({ children }
     fetch(`${api}/api/stats`)
       .then(r => r.json())
       .then(st => setStats(st))
+      .catch(() => {});
+
+    fetch(`${api}/api/persons`)
+      .then(r => r.json())
+      .then(p => {
+        if (Array.isArray(p) && p.length > 0) setPersons(p);
+      })
+      .catch(() => {});
+
+    fetch(`${api}/api/attendance`)
+      .then(r => r.json())
+      .then(att => {
+        if (Array.isArray(att) && att.length > 0) setAttendanceRecords(att);
+      })
       .catch(() => {});
 
     return () => {
@@ -487,6 +617,117 @@ export const SecurityProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   };
 
+  // --- Smart Class Attendance Intelligence Actions ---
+
+  const markAttendance = async (
+    personId: string, 
+    status: AttendanceStatus, 
+    notes?: string, 
+    course?: string, 
+    room?: string
+  ): Promise<AttendanceRecord | null> => {
+    try {
+      const res = await fetch(`${getApiBase()}/api/attendance/mark`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ person_id: personId, status, notes, course, room })
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setAttendanceRecords(prev => upsertItem(prev, updated, 'person_id'));
+        setPersons(prev => prev.map(p => p.person_id === personId ? { ...p, attendance_status: status, attendance_time: updated.timestamp } : p));
+        return updated;
+      }
+    } catch (e) {
+      console.warn('Attendance mark offline fallback:', e);
+    }
+
+    const nowTime = new Date().toLocaleTimeString('en-US');
+    const existing = attendanceRecords.find(a => a.person_id === personId);
+    if (existing) {
+      const updated: AttendanceRecord = { ...existing, status, notes: notes || existing.notes, timestamp: nowTime };
+      setAttendanceRecords(prev => prev.map(a => a.person_id === personId ? updated : a));
+      setPersons(prev => prev.map(p => p.person_id === personId ? { ...p, attendance_status: status, attendance_time: nowTime } : p));
+      return updated;
+    }
+    return null;
+  };
+
+  const triggerAttendanceScan = async () => {
+    try {
+      const res = await fetch(`${getApiBase()}/api/attendance/scan`, { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.records && Array.isArray(data.records)) {
+          setAttendanceRecords(data.records);
+          playAlertSound('Low');
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('Attendance scan fallback:', e);
+    }
+
+    // Optimistic simulated AI camera biometric verification
+    const nowTime = new Date().toLocaleTimeString('en-US');
+    setAttendanceRecords(prev => prev.map(r => ({
+      ...r,
+      status: r.status === 'Proxy Flagged' ? 'Proxy Flagged' : 'Verified',
+      confidence_score: r.status === 'Proxy Flagged' ? 0.65 : 0.98,
+      timestamp: nowTime
+    })));
+    playAlertSound('Low');
+  };
+
+  const exportAttendanceCSV = (course?: string) => {
+    const list = course ? attendanceRecords.filter(a => a.course?.toLowerCase().includes(course.toLowerCase())) : attendanceRecords;
+    const csvContent = "data:text/csv;charset=utf-8,"
+      + "Record ID,Student/Faculty ID,Full Name,Role,Department,Course,Classroom Zone,Status,Time In,Biometric Confidence,Verified Camera,Notes\n"
+      + list.map(r => `"${r.id}","${r.student_id || r.person_id}","${r.name}","${r.role}","${r.department || 'N/A'}","${r.course || 'N/A'}","${r.room}","${r.status}","${r.timestamp}","${Math.round(r.confidence_score * 100)}%","${r.verified_camera_id}","${r.notes || ''}"`).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `eagle_eye_smart_class_attendance_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const fetchPersonTimeline = async (personId: string): Promise<MovementEvent[]> => {
+    try {
+      const res = await fetch(`${getApiBase()}/api/persons/${personId}/timeline`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) return data;
+      }
+    } catch (e) {}
+
+    return [
+      { id: 'm1', person_id: personId, track_id: 'TRK-26-000567', timestamp: '09:02:11 AM', camera_id: 'CAM-001', building: activeBuilding, floor: 'Floor 1', room: 'Main Entrance Gate 1', event_type: 'ENTER', dwell_time_seconds: 35 },
+      { id: 'm2', person_id: personId, track_id: 'TRK-26-000567', timestamp: '09:05:02 AM', camera_id: 'CAM-003', building: activeBuilding, floor: 'Floor 1', room: 'Lobby & Turnstile', event_type: 'VERIFIED', dwell_time_seconds: 50 },
+      { id: 'm3', person_id: personId, track_id: 'TRK-26-000567', timestamp: '09:08:17 AM', camera_id: 'CAM-015', building: activeBuilding, floor: 'Floor 2', room: 'Elevator Lobby', event_type: 'TRANSIT', dwell_time_seconds: 45 },
+      { id: 'm4', person_id: personId, track_id: 'TRK-26-000567', timestamp: '09:10:02 AM', camera_id: 'CAM-014', building: activeBuilding, floor: 'Floor 2', room: 'Central Corridor', event_type: 'TRANSIT', dwell_time_seconds: 60 },
+      { id: 'm5', person_id: personId, track_id: 'TRK-26-000567', timestamp: '09:12:04 AM', camera_id: 'CAM-021', building: activeBuilding, floor: 'Floor 2', room: 'Lecture Hall 101', event_type: 'ATTENDANCE_VERIFIED', dwell_time_seconds: 4320 }
+    ];
+  };
+
+  const fetchPersonAppearances = async (personId: string): Promise<AppearanceSnapshot[]> => {
+    try {
+      const res = await fetch(`${getApiBase()}/api/persons/${personId}/appearances`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) return data;
+      }
+    } catch (e) {}
+
+    const p = persons.find(x => x.person_id === personId);
+    return [
+      { id: 'app-1', person_id: personId, date: 'Today', time: '09:12 AM', photo_url: p?.today_appearance_url || p?.photo_url || '', outfit_description: `${p?.role || 'Student'} Attire & ID Badge`, is_today: true },
+      { id: 'app-2', person_id: personId, date: 'Yesterday', time: '09:05 AM', photo_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=300&fit=crop&crop=face', outfit_description: 'Charcoal Gray Crew Neck & Denim', is_today: false },
+      { id: 'app-3', person_id: personId, date: '2 days ago', time: '09:10 AM', photo_url: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=300&h=300&fit=crop&crop=face', outfit_description: 'Red Plaid Button-Down Shirt', is_today: false }
+    ];
+  };
+
   const toggleSound = () => setSoundEnabled(prev => !prev);
   const toggleLockdown = () => setIsLockdownMode(prev => !prev);
 
@@ -503,6 +744,7 @@ export const SecurityProvider: React.FC<{ children: ReactNode }> = ({ children }
       alerts,
       rules,
       buildings,
+      attendanceRecords,
       selectedPerson,
       selectedPersonId,
       selectedCamera,
@@ -529,6 +771,11 @@ export const SecurityProvider: React.FC<{ children: ReactNode }> = ({ children }
       enrollPerson,
       resolveAlert,
       simulateAlert,
+      markAttendance,
+      triggerAttendanceScan,
+      exportAttendanceCSV,
+      fetchPersonTimeline,
+      fetchPersonAppearances,
       connectCamera,
       connectLaptopWebcam,
       connectMobileCamera,

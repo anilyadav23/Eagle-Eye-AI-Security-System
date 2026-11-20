@@ -20,30 +20,34 @@ export const PersonEnrollmentView: React.FC = () => {
   const [name, setName] = useState<string>('');
   const [mobile, setMobile] = useState<string>('');
   const [email, setEmail] = useState<string>('');
-  const [idProofType, setIdProofType] = useState<string>('Aadhaar Card');
+  const [studentId, setStudentId] = useState<string>('');
+  const [department, setDepartment] = useState<string>('Computer Science & Engineering');
+  const [course, setCourse] = useState<string>('CS301 - Computer Vision & AI');
+  const [semester, setSemester] = useState<string>('Semester 6');
+  const [idProofType, setIdProofType] = useState<string>('Student ID Card');
   const [idProofNumber, setIdProofNumber] = useState<string>('');
-  const [role, setRole] = useState<PersonRole>('Visitor');
-  const [permissionType, setPermissionType] = useState<string>('Temporary (24 Hours)');
+  const [role, setRole] = useState<PersonRole>('Student');
+  const [permissionType, setPermissionType] = useState<string>('Full Academic Access');
   const [validFrom, setValidFrom] = useState<string>(new Date().toISOString().slice(0, 10));
-  const [validTo, setValidTo] = useState<string>(new Date(Date.now() + 86400000).toISOString().slice(0, 10));
+  const [validTo, setValidTo] = useState<string>(new Date(Date.now() + 86400000 * 365).toISOString().slice(0, 10));
   const [allowedZones, setAllowedZones] = useState<string[]>([
-    'Floor 1 - Reception',
-    'Floor 2 - Meeting Room',
-    'Floor 2 - Office 201'
+    'Lecture Hall 101',
+    'Computer Science Lab 2',
+    'Central Corridor'
   ]);
-  const [notes, setNotes] = useState<string>('Visitor pass requested for corporate meeting.');
+  const [notes, setNotes] = useState<string>('Enrolled student for smart attendance & spatial monitoring.');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [generatedPass, setGeneratedPass] = useState<any>(null);
 
   const availableZones = [
-    'Floor 1 - Reception',
-    'Floor 2 - Meeting Room',
-    'Floor 2 - Office 201',
-    'Floor 2 - Office 202',
-    'Floor 2 - Corridor',
-    'Floor 2 - Server Room (Restricted)',
-    'Floor 3 - Executive Suites',
-    'Floor 4 - Telecom Vault (Restricted)',
+    'Lecture Hall 101',
+    'AI Vision & Robotics Lab (Restricted)',
+    'Computer Science Lab 2',
+    'Faculty & Dean Lounge (Restricted)',
+    'Central Corridor',
+    'Elevator Lobby',
+    'Main Entrance Gate 1',
+    'Campus Library'
   ];
 
   const toggleZone = (zone: string) => {
@@ -59,10 +63,16 @@ export const PersonEnrollmentView: React.FC = () => {
     if (!name || !mobile) return;
     setIsSubmitting(true);
 
+    const generatedStudentId = studentId || (role === 'Student' ? `STU-2026-${Math.floor(1000 + Math.random() * 9000)}` : role === 'Professor' ? `FAC-2026-${Math.floor(100 + Math.random() * 900)}` : undefined);
+
     const payload = {
       name,
       mobile,
-      email: email || `${name.toLowerCase().replace(/\s+/g, '.')}@example.com`,
+      email: email || `${name.toLowerCase().replace(/\s+/g, '.')}@campus.edu`,
+      student_id: generatedStudentId,
+      department,
+      course,
+      semester,
       id_proof_type: idProofType,
       id_proof_number: idProofNumber || `ID-${Math.floor(100000 + Math.random() * 900000)}`,
       role,
@@ -207,13 +217,67 @@ export const PersonEnrollmentView: React.FC = () => {
                     onChange={(e) => setRole(e.target.value as PersonRole)}
                     className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500 font-medium"
                   >
-                    <option value="Visitor">Visitor</option>
-                    <option value="Employee">Employee</option>
+                    <option value="Student">Student (Academic)</option>
+                    <option value="Professor">Professor / Instructor</option>
+                    <option value="Faculty">Faculty Member</option>
+                    <option value="Staff">Academic Staff</option>
+                    <option value="Employee">Campus Employee</option>
+                    <option value="Visitor">Visitor / Guest</option>
+                    <option value="VIP">VIP / Dignitary</option>
                     <option value="Contractor">Contractor</option>
-                    <option value="VIP">VIP</option>
                     <option value="Vendor">Vendor</option>
                   </select>
                 </div>
+
+                {(role === 'Student' || role === 'Professor' || role === 'Faculty' || role === 'Staff') && (
+                  <>
+                    <div>
+                      <label className="block text-xs font-semibold text-sky-400 mb-1">
+                        {role === 'Student' ? 'Student Roll / Enrollment ID' : 'Faculty / Staff ID'}
+                      </label>
+                      <input
+                        type="text"
+                        placeholder={role === 'Student' ? 'e.g. STU-10087' : 'e.g. FAC-2001'}
+                        value={studentId}
+                        onChange={(e) => setStudentId(e.target.value)}
+                        className="w-full bg-slate-900 border border-sky-500/50 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-400 font-mono font-bold"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-sky-400 mb-1">Department / Branch</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Computer Science & Engineering"
+                        value={department}
+                        onChange={(e) => setDepartment(e.target.value)}
+                        className="w-full bg-slate-900 border border-sky-500/50 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-400 font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-sky-400 mb-1">Assigned Course / Module</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. CS301 - Computer Vision & AI"
+                        value={course}
+                        onChange={(e) => setCourse(e.target.value)}
+                        className="w-full bg-slate-900 border border-sky-500/50 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-400 font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-sky-400 mb-1">Semester / Term</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Semester 6"
+                        value={semester}
+                        onChange={(e) => setSemester(e.target.value)}
+                        className="w-full bg-slate-900 border border-sky-500/50 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-400 font-medium"
+                      />
+                    </div>
+                  </>
+                )}
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 mb-1">ID Proof Type</label>
@@ -222,10 +286,12 @@ export const PersonEnrollmentView: React.FC = () => {
                     onChange={(e) => setIdProofType(e.target.value)}
                     className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500 font-medium"
                   >
+                    <option value="Student ID Card">University Student ID Card</option>
+                    <option value="Faculty ID Card">Faculty / Staff ID Card</option>
                     <option value="Aadhaar Card">Aadhaar Card</option>
                     <option value="Passport">Passport</option>
                     <option value="Driving License">Driving License</option>
-                    <option value="Corporate ID">Corporate Employee ID</option>
+                    <option value="Corporate ID">Corporate / Campus ID</option>
                     <option value="Govt ID">Govt Official ID</option>
                   </select>
                 </div>
@@ -362,11 +428,11 @@ export const PersonEnrollmentView: React.FC = () => {
               </div>
 
               <div className="flex items-center space-x-1.5 text-[11px] overflow-x-auto pb-1">
-                {['all', 'Visitor', 'Employee', 'Contractor', 'VIP'].map(r => (
+                {['all', 'Student', 'Professor', 'Faculty', 'Staff', 'Visitor', 'Employee', 'VIP'].map(r => (
                   <button
                     key={r}
                     onClick={() => setRoleFilter(r)}
-                    className={`px-2.5 py-1 rounded-lg font-medium transition-all ${
+                    className={`px-2.5 py-1 rounded-lg font-medium transition-all shrink-0 ${
                       roleFilter === r
                         ? 'bg-purple-600 text-white'
                         : 'bg-slate-900 text-slate-400 hover:text-white'

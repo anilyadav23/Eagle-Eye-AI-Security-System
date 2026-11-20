@@ -9,35 +9,39 @@ import { PersonRole } from '../../types';
 export const EnrollmentModal: React.FC = () => {
   const { isEnrollModalOpen, setIsEnrollModalOpen, enrollPerson, unknownDetectionData } = useSecurity();
 
-  const [name, setName] = useState<string>('Rahul Verma');
-  const [mobile, setMobile] = useState<string>('9876543210');
-  const [email, setEmail] = useState<string>('rahul.verma@email.com');
-  const [idProofType, setIdProofType] = useState<string>('Aadhaar Card');
-  const [idProofNumber, setIdProofNumber] = useState<string>('1234 5678 9012');
-  const [role, setRole] = useState<PersonRole>('Visitor');
-  const [permissionType, setPermissionType] = useState<string>('Temporary');
-  const [validFrom, setValidFrom] = useState<string>('2025-08-24 10:00 AM');
-  const [validTo, setValidTo] = useState<string>('2025-08-24 06:00 PM');
+  const [name, setName] = useState<string>('Rahul Sharma');
+  const [mobile, setMobile] = useState<string>('+91 98765 43210');
+  const [email, setEmail] = useState<string>('rahul.sharma@campus.edu');
+  const [studentId, setStudentId] = useState<string>('STU-10087');
+  const [department, setDepartment] = useState<string>('Computer Science & Engineering');
+  const [course, setCourse] = useState<string>('CS301 - Computer Vision & AI');
+  const [semester, setSemester] = useState<string>('Semester 6');
+  const [idProofType, setIdProofType] = useState<string>('Student ID Card');
+  const [idProofNumber, setIdProofNumber] = useState<string>('STU-CARD-88392');
+  const [role, setRole] = useState<PersonRole>('Student');
+  const [permissionType, setPermissionType] = useState<string>('Academic Clearance');
+  const [validFrom, setValidFrom] = useState<string>('2026-08-01 08:00 AM');
+  const [validTo, setValidTo] = useState<string>('2027-06-30 06:00 PM');
   const [allowedZones, setAllowedZones] = useState<string[]>([
-    'Floor 1 - Reception',
-    'Floor 2 - Meeting Room',
-    'Floor 2 - Office 201'
+    'Lecture Hall 101',
+    'Computer Science Lab 2',
+    'Central Corridor'
   ]);
-  const [notes, setNotes] = useState<string>('Client Demo & Executive Briefing');
+  const [notes, setNotes] = useState<string>('Smart class biometric attendance clearance');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [generatedPass, setGeneratedPass] = useState<any>(null);
 
   if (!isEnrollModalOpen) return null;
 
   const availableZones = [
-    'Floor 1 - Reception',
-    'Floor 2 - Meeting Room',
-    'Floor 2 - Office 201',
-    'Floor 2 - Office 202',
-    'Floor 2 - Corridor',
-    'Floor 2 - Server Room (Restricted)',
-    'Floor 3 - Executive Suites',
-    'Floor 4 - Telecom Vault (Restricted)',
+    'Lecture Hall 101',
+    'AI Vision & Robotics Lab (Restricted)',
+    'Computer Science Lab 2',
+    'Faculty & Dean Lounge (Restricted)',
+    'Central Corridor',
+    'Elevator Lobby',
+    'Main Entrance Gate 1',
+    'Campus Library'
   ];
 
   const toggleZone = (zone: string) => {
@@ -52,10 +56,16 @@ export const EnrollmentModal: React.FC = () => {
     e.preventDefault();
     setIsSubmitting(true);
 
+    const generatedStudentId = studentId || (role === 'Student' ? `STU-2026-${Math.floor(1000 + Math.random() * 9000)}` : role === 'Professor' ? `FAC-2026-${Math.floor(100 + Math.random() * 900)}` : undefined);
+
     const payload = {
       name,
       mobile,
       email,
+      student_id: generatedStudentId,
+      department,
+      course,
+      semester,
       id_proof_type: idProofType,
       id_proof_number: idProofNumber,
       role,
@@ -179,13 +189,67 @@ export const EnrollmentModal: React.FC = () => {
                     onChange={(e) => setRole(e.target.value as PersonRole)}
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-500 font-medium"
                   >
-                    <option value="Visitor">Visitor</option>
-                    <option value="Employee">Employee</option>
+                    <option value="Student">Student (Academic)</option>
+                    <option value="Professor">Professor / Instructor</option>
+                    <option value="Faculty">Faculty Member</option>
+                    <option value="Staff">Academic Staff</option>
+                    <option value="Employee">Campus Employee</option>
+                    <option value="Visitor">Visitor / Guest</option>
+                    <option value="VIP">VIP / Dignitary</option>
                     <option value="Contractor">Contractor</option>
-                    <option value="VIP">VIP</option>
                     <option value="Vendor">Vendor</option>
                   </select>
                 </div>
+
+                {(role === 'Student' || role === 'Professor' || role === 'Faculty' || role === 'Staff') && (
+                  <>
+                    <div>
+                      <label className="block text-xs font-semibold text-sky-400 mb-1">
+                        {role === 'Student' ? 'Student Roll / Enrollment ID' : 'Faculty / Staff ID'}
+                      </label>
+                      <input
+                        type="text"
+                        placeholder={role === 'Student' ? 'e.g. STU-10087' : 'e.g. FAC-2001'}
+                        value={studentId}
+                        onChange={(e) => setStudentId(e.target.value)}
+                        className="w-full bg-slate-800 border border-sky-500/50 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-400 font-mono font-bold"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-sky-400 mb-1">Department / Branch</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Computer Science & Engineering"
+                        value={department}
+                        onChange={(e) => setDepartment(e.target.value)}
+                        className="w-full bg-slate-800 border border-sky-500/50 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-400 font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-sky-400 mb-1">Assigned Course / Module</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. CS301 - Computer Vision & AI"
+                        value={course}
+                        onChange={(e) => setCourse(e.target.value)}
+                        className="w-full bg-slate-800 border border-sky-500/50 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-400 font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-sky-400 mb-1">Semester / Term</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Semester 6"
+                        value={semester}
+                        onChange={(e) => setSemester(e.target.value)}
+                        className="w-full bg-slate-800 border border-sky-500/50 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-400 font-medium"
+                      />
+                    </div>
+                  </>
+                )}
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 mb-1">ID Proof Type</label>
@@ -194,10 +258,12 @@ export const EnrollmentModal: React.FC = () => {
                     onChange={(e) => setIdProofType(e.target.value)}
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-500 font-medium"
                   >
+                    <option value="Student ID Card">University Student ID Card</option>
+                    <option value="Faculty ID Card">Faculty / Staff ID Card</option>
                     <option value="Aadhaar Card">Aadhaar Card</option>
                     <option value="Passport">Passport</option>
                     <option value="Driving License">Driving License</option>
-                    <option value="Voter ID">Voter ID</option>
+                    <option value="Corporate ID">Corporate / Campus ID</option>
                     <option value="Govt ID">Govt Official ID</option>
                   </select>
                 </div>

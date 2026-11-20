@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import math
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Tuple, Optional, Any
 from database.db import db_manager
 
 class BiometricFaceRecognitionService:

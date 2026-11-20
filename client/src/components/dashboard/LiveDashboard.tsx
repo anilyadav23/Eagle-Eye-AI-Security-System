@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   Users, UserCheck, HelpCircle, ShieldAlert, Camera, 
-  Map, UserPlus, FileText, ArrowRight, Video 
+  Map, UserPlus, FileText, ArrowRight, Video, GraduationCap 
 } from 'lucide-react';
 import { useSecurity } from '../../context/SecurityContext';
 import { MetricCard } from '../common/MetricCard';
@@ -75,6 +75,13 @@ export const LiveDashboard: React.FC<LiveDashboardProps> = ({ setActiveTab }) =>
               Tactical Quick Actions:
             </div>
             <div className="flex items-center space-x-2.5">
+              <button
+                onClick={() => setActiveTab('attendance')}
+                className="px-3 py-1.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 border border-emerald-500/30 text-xs font-semibold flex items-center space-x-1.5 transition-all shadow-sm"
+              >
+                <GraduationCap className="w-3.5 h-3.5" />
+                <span>Attendance Roster</span>
+              </button>
               <button
                 onClick={() => setActiveTab('map')}
                 className="px-3 py-1.5 rounded-xl bg-sky-600/20 hover:bg-sky-600/40 text-sky-300 border border-sky-500/30 text-xs font-semibold flex items-center space-x-1.5 transition-all"

@@ -24,11 +24,11 @@ export const AnalyticsDashboard: React.FC = () => {
   ];
 
   const zoneUtilization = [
-    { name: 'Executive Meeting Room A', pct: 88, dwell: '45 mins', count: 8, max: 16 },
-    { name: 'Office 201 - Engineering Hub', pct: 70, dwell: '120 mins', count: 4, max: 10 },
-    { name: 'Office 202 - Product Operations', pct: 50, dwell: '95 mins', count: 2, max: 8 },
-    { name: 'Server Room Restricted Vault', pct: 25, dwell: '15 mins', count: 3, max: 4 },
-    { name: 'Cafeteria & Pantry Lounge', pct: 40, dwell: '10 mins', count: 1, max: 10 },
+    { name: 'Lecture Hall 101 (Smart Attendance Pod)', pct: 92, dwell: '55 mins', count: 28, max: 30 },
+    { name: 'AI Vision & Robotics Lab (Restricted)', pct: 65, dwell: '110 mins', count: 6, max: 10 },
+    { name: 'Computer Science Lab 2', pct: 85, dwell: '90 mins', count: 22, max: 25 },
+    { name: 'Faculty & Dean Lounge (Restricted)', pct: 30, dwell: '35 mins', count: 4, max: 12 },
+    { name: 'Central Corridor & Gate 1', pct: 45, dwell: '8 mins', count: 12, max: 40 },
   ];
 
   const downloadAuditReport = () => {

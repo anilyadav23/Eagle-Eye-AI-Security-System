@@ -81,14 +81,14 @@ export const SecurityRulesManager: React.FC = () => {
           </button>
 
           <button
-            onClick={() => simulateAlert('Tailgating Detected', 'Main Entrance')}
+            onClick={() => simulateAlert('Tailgating Detected', 'Lecture Hall 101')}
             className="p-3 rounded-xl bg-amber-950/40 hover:bg-amber-900/60 border border-amber-600/50 text-left transition-all group"
           >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-amber-300">Turnstile Tailgating</span>
+              <span className="text-xs font-bold text-amber-300">Proxy Attendance / Tailgating</span>
               <Play className="w-3.5 h-3.5 text-amber-400 group-hover:translate-x-1 transition-transform" />
             </div>
-            <p className="text-[10px] text-amber-400/80 mt-1 font-mono">Simulate 2 people on 1 scan (&lt;1.5s)</p>
+            <p className="text-[10px] text-amber-400/80 mt-1 font-mono">Simulate 2 students on 1 badge scan</p>
           </button>
 
           <button

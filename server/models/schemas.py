@@ -4,12 +4,23 @@ from pydantic import BaseModel, Field
 from enum import Enum
 
 class PersonRole(str, Enum):
+    STUDENT = "Student"
+    PROFESSOR = "Professor"
+    FACULTY = "Faculty"
+    STAFF = "Staff"
     EMPLOYEE = "Employee"
     VISITOR = "Visitor"
     CONTRACTOR = "Contractor"
     VIP = "VIP"
     VENDOR = "Vendor"
     SECURITY = "Security"
+
+class AttendanceStatus(str, Enum):
+    PRESENT = "Present"
+    VERIFIED = "Verified"
+    LATE = "Late"
+    ABSENT = "Absent"
+    PROXY_FLAGGED = "Proxy Flagged"
 
 class AccessStatus(str, Enum):
     AUTHORIZED = "Authorized"
@@ -199,6 +210,29 @@ class MovementEvent(BaseModel):
     event_type: str = "ENTER"
     dwell_time_seconds: int = 0
 
+class AttendanceRecord(BaseModel):
+    id: str
+    person_id: str
+    student_id: Optional[str] = None
+    name: str
+    role: str = "Student"
+    department: Optional[str] = "Computer Science"
+    course: Optional[str] = "CS301 - Computer Vision & AI"
+    room: str = "Lecture Hall 101"
+    status: AttendanceStatus = AttendanceStatus.PRESENT
+    timestamp: str
+    confidence_score: float = 0.96
+    photo_url: str = ""
+    verified_camera_id: str = "CAM-001"
+    notes: Optional[str] = ""
+
+class AttendanceMarkRequest(BaseModel):
+    person_id: str
+    status: AttendanceStatus = AttendanceStatus.VERIFIED
+    notes: Optional[str] = ""
+    course: Optional[str] = None
+    room: Optional[str] = None
+
 class Person(BaseModel):
     id: str
     person_id: str
@@ -206,6 +240,10 @@ class Person(BaseModel):
     name: str
     mobile: str
     email: str
+    student_id: Optional[str] = None
+    department: Optional[str] = None
+    course: Optional[str] = None
+    semester: Optional[str] = None
     id_proof_type: str = "Aadhaar Card"
     id_proof_number: str
     role: PersonRole = PersonRole.VISITOR
@@ -216,6 +254,10 @@ class Person(BaseModel):
     photo_url: str
     today_appearance_url: str
     status: AccessStatus = AccessStatus.AUTHORIZED
+    attendance_status: Optional[str] = "Present"
+    attendance_time: Optional[str] = None
+    attendance_confidence: Optional[float] = 0.95
+    face_embedding: Optional[List[float]] = None
     notes: Optional[str] = ""
     current_building: str = "Corporate Tower A"
     current_floor: str = "Floor 2"
@@ -318,6 +360,10 @@ class PersonEnrollmentRequest(BaseModel):
     name: str
     mobile: str
     email: str
+    student_id: Optional[str] = None
+    department: Optional[str] = None
+    course: Optional[str] = None
+    semester: Optional[str] = None
     id_proof_type: str = "Aadhaar Card"
     id_proof_number: str
     role: PersonRole = PersonRole.VISITOR
@@ -326,6 +372,7 @@ class PersonEnrollmentRequest(BaseModel):
     valid_to: str
     allowed_zones: List[str]
     photo_url: Optional[str] = None
+    attendance_status: Optional[str] = "Present"
     notes: Optional[str] = ""
     temporary_track_id: Optional[str] = None
 

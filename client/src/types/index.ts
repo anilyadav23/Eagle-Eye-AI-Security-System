@@ -1,4 +1,16 @@
-export type PersonRole = 'Employee' | 'Visitor' | 'Contractor' | 'VIP' | 'Vendor' | 'Security';
+export type PersonRole = 
+  | 'Student'
+  | 'Professor'
+  | 'Faculty'
+  | 'Staff'
+  | 'Employee' 
+  | 'Visitor' 
+  | 'Contractor' 
+  | 'VIP' 
+  | 'Vendor' 
+  | 'Security';
+
+export type AttendanceStatus = 'Present' | 'Verified' | 'Late' | 'Absent' | 'Proxy Flagged';
 
 export type AccessStatus = 'Authorized' | 'Temporary' | 'Expired' | 'Restricted' | 'Unknown' | 'Alert';
 
@@ -134,9 +146,30 @@ export interface MovementEvent {
   dwell_time_seconds: number;
 }
 
+export interface AttendanceRecord {
+  id: string;
+  person_id: string;
+  student_id?: string;
+  name: string;
+  role: string;
+  department?: string;
+  course?: string;
+  room: string;
+  status: AttendanceStatus;
+  timestamp: string;
+  confidence_score: number;
+  photo_url: string;
+  verified_camera_id: string;
+  notes?: string;
+}
+
 export interface Person {
   id: string;
   person_id: string;
+  student_id?: string;
+  department?: string;
+  course?: string;
+  semester?: string;
   track_id: string;
   name: string;
   mobile: string;
@@ -151,6 +184,9 @@ export interface Person {
   photo_url: string;
   today_appearance_url: string;
   status: AccessStatus;
+  attendance_status?: AttendanceStatus;
+  attendance_time?: string;
+  attendance_confidence?: number;
   notes?: string;
   current_building: string;
   current_floor: string;

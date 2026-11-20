@@ -23,7 +23,7 @@ export const BuildingOccupancy3D: React.FC = () => {
 
     return {
       floor: f.floor_name,
-      name: f.floor_name === 'Floor 1' ? 'Main Lobby & Reception' : f.floor_name === 'Floor 2' ? 'Core Operations & Labs' : f.floor_name === 'Floor 3' ? 'Executive Suites' : f.floor_name === 'Floor 4' ? 'Server Hub & Telecom' : `${currentBldg?.name || 'Building'} Level ${f.floor_number}`,
+      name: f.floor_name === 'Floor 1' ? 'Lecture Halls & Classrooms' : f.floor_name === 'Floor 2' ? 'AI & Robotics Laboratories' : f.floor_name === 'Floor 3' ? 'Faculty & Dean Suites' : f.floor_name === 'Floor 4' ? 'Central Computing & Telecom Vault' : `${currentBldg?.name || 'Campus'} Level ${f.floor_number}`,
       count: floorOccupancy,
       max: maxCap,
       color: defaultColors[i % defaultColors.length],

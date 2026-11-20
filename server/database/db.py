@@ -9,7 +9,7 @@ from models.schemas import (
     RoomZone, SecurityAlert, SecurityRule, BuildingProfile, 
     FloorProfile, CanvasShape, Point2D, AccessStatus, AlertSeverity, 
     AlertType, AlertStatus, PersonRole, CameraBrand, StreamType, 
-    ConnectionStatus, BlueprintType, ShapeType
+    ConnectionStatus, BlueprintType, ShapeType, AttendanceRecord, AttendanceStatus
 )
 from auth.security import get_password_hash
 
@@ -84,6 +84,10 @@ def init_db():
             name TEXT NOT NULL,
             mobile TEXT,
             email TEXT,
+            student_id TEXT,
+            department TEXT,
+            course TEXT,
+            semester TEXT,
             id_proof_type TEXT,
             id_proof_number TEXT,
             role TEXT DEFAULT 'Visitor',
@@ -94,6 +98,9 @@ def init_db():
             photo_url TEXT,
             today_appearance_url TEXT,
             status TEXT DEFAULT 'Authorized',
+            attendance_status TEXT DEFAULT 'Present',
+            attendance_time TEXT,
+            attendance_confidence REAL DEFAULT 0.95,
             notes TEXT,
             current_building TEXT,
             current_floor TEXT,
@@ -104,6 +111,56 @@ def init_db():
             y_pos REAL DEFAULT 50.0,
             face_embedding_json TEXT DEFAULT '[]',
             created_at TEXT
+        )
+    ''')
+
+    # Safe migrations for existing SQLite persons table columns
+    try:
+        cursor.execute("ALTER TABLE persons ADD COLUMN student_id TEXT")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE persons ADD COLUMN department TEXT")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE persons ADD COLUMN course TEXT")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE persons ADD COLUMN semester TEXT")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE persons ADD COLUMN attendance_status TEXT DEFAULT 'Present'")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE persons ADD COLUMN attendance_time TEXT")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE persons ADD COLUMN attendance_confidence REAL DEFAULT 0.95")
+    except Exception:
+        pass
+
+    # Attendance Records Table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS attendance_records (
+            id TEXT PRIMARY KEY,
+            person_id TEXT NOT NULL,
+            student_id TEXT,
+            name TEXT NOT NULL,
+            role TEXT DEFAULT 'Student',
+            department TEXT,
+            course TEXT,
+            room TEXT,
+            status TEXT DEFAULT 'Present',
+            timestamp TEXT NOT NULL,
+            confidence_score REAL DEFAULT 0.95,
+            photo_url TEXT,
+            verified_camera_id TEXT,
+            notes TEXT
         )
     ''')
 
@@ -519,6 +576,10 @@ class DatabaseManager:
                 name=r["name"],
                 mobile=r["mobile"] or "",
                 email=r["email"] or "",
+                student_id=r["student_id"] if "student_id" in r.keys() else None,
+                department=r["department"] if "department" in r.keys() else None,
+                course=r["course"] if "course" in r.keys() else None,
+                semester=r["semester"] if "semester" in r.keys() else None,
                 id_proof_type=r["id_proof_type"] or "Aadhaar Card",
                 id_proof_number=r["id_proof_number"] or "",
                 role=r["role"] or PersonRole.VISITOR,
@@ -529,6 +590,9 @@ class DatabaseManager:
                 photo_url=r["photo_url"],
                 today_appearance_url=r["today_appearance_url"],
                 status=r["status"] or AccessStatus.AUTHORIZED,
+                attendance_status=r["attendance_status"] if "attendance_status" in r.keys() else "Present",
+                attendance_time=r["attendance_time"] if "attendance_time" in r.keys() else None,
+                attendance_confidence=r["attendance_confidence"] if "attendance_confidence" in r.keys() else 0.95,
                 notes=r["notes"] or "",
                 current_building=r["current_building"] or "Corporate Tower A",
                 current_floor=r["current_floor"] or "Floor 2",
@@ -547,19 +611,72 @@ class DatabaseManager:
         conn = get_db_connection()
         cursor = conn.cursor()
         allowed_json = json.dumps(p.allowed_zones)
-        emb_json = json.dumps(p.face_embedding or [])
+        emb_json = json.dumps(getattr(p, 'face_embedding', []) or [])
         cursor.execute('''
             INSERT OR REPLACE INTO persons (
-                id, person_id, track_id, name, mobile, email, id_proof_type, id_proof_number,
-                role, permission_type, valid_from, valid_to, allowed_zones_json, photo_url,
-                today_appearance_url, status, notes, current_building, current_floor,
+                id, person_id, track_id, name, mobile, email, student_id, department, course, semester,
+                id_proof_type, id_proof_number, role, permission_type, valid_from, valid_to,
+                allowed_zones_json, photo_url, today_appearance_url, status, attendance_status,
+                attendance_time, attendance_confidence, notes, current_building, current_floor,
                 current_room, current_camera_id, last_seen_time, x_pos, y_pos, face_embedding_json, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
-            p.id, p.person_id, p.track_id, p.name, p.mobile, p.email, p.id_proof_type, p.id_proof_number,
-            p.role, p.permission_type, p.valid_from, p.valid_to, allowed_json, p.photo_url,
-            p.today_appearance_url, p.status, p.notes, p.current_building, p.current_floor,
+            p.id, p.person_id, p.track_id, p.name, p.mobile, p.email, p.student_id, p.department, p.course, p.semester,
+            p.id_proof_type, p.id_proof_number, p.role, p.permission_type, p.valid_from, p.valid_to,
+            allowed_json, p.photo_url, p.today_appearance_url, p.status, p.attendance_status,
+            p.attendance_time, p.attendance_confidence, p.notes, p.current_building, p.current_floor,
             p.current_room, p.current_camera_id, p.last_seen_time, p.x_pos, p.y_pos, emb_json, p.created_at
+        ))
+        conn.commit()
+        conn.close()
+
+    # --- Attendance Records Operations ---
+    def get_all_attendance_records(self, course: Optional[str] = None, status: Optional[str] = None) -> List[AttendanceRecord]:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        query = "SELECT * FROM attendance_records WHERE 1=1"
+        params = []
+        if course:
+            query += " AND course LIKE ?"
+            params.append(f"%{course}%")
+        if status:
+            query += " AND status = ?"
+            params.append(status)
+        query += " ORDER BY timestamp DESC"
+        cursor.execute(query, tuple(params))
+        rows = cursor.fetchall()
+        records = []
+        for r in rows:
+            records.append(AttendanceRecord(
+                id=r["id"],
+                person_id=r["person_id"],
+                student_id=r["student_id"],
+                name=r["name"],
+                role=r["role"] or "Student",
+                department=r["department"],
+                course=r["course"],
+                room=r["room"],
+                status=r["status"] or AttendanceStatus.PRESENT,
+                timestamp=r["timestamp"],
+                confidence_score=r["confidence_score"] or 0.96,
+                photo_url=r["photo_url"] or "",
+                verified_camera_id=r["verified_camera_id"] or "CAM-001",
+                notes=r["notes"] or ""
+            ))
+        conn.close()
+        return records
+
+    def save_attendance_record(self, rec: AttendanceRecord):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT OR REPLACE INTO attendance_records (
+                id, person_id, student_id, name, role, department, course,
+                room, status, timestamp, confidence_score, photo_url, verified_camera_id, notes
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            rec.id, rec.person_id, rec.student_id, rec.name, rec.role, rec.department, rec.course,
+            rec.room, rec.status, rec.timestamp, rec.confidence_score, rec.photo_url, rec.verified_camera_id, rec.notes
         ))
         conn.commit()
         conn.close()

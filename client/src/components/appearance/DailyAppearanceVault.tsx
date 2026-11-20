@@ -1,48 +1,20 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { History, Sparkles, AlertCircle, Calendar, Clock, CheckCircle2, User, Camera, ShieldCheck } from 'lucide-react';
 import { useSecurity } from '../../context/SecurityContext';
+import { AppearanceSnapshot } from '../../types';
 
 export const DailyAppearanceVault: React.FC = () => {
-  const { selectedPerson, setSelectedPersonId, persons } = useSecurity();
+  const { selectedPerson, setSelectedPersonId, persons, fetchPersonAppearances } = useSecurity();
   const person = selectedPerson || persons[0];
+  const [snapshots, setSnapshots] = useState<AppearanceSnapshot[]>([]);
 
-  const historicalSnapshots = [
-    {
-      date: '24 Aug 2025 (Today)',
-      time: '09:42 AM',
-      photo: person?.today_appearance_url || person?.photo_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&h=300&fit=crop&crop=face',
-      outfit: 'Standard Corporate / Navy Attire',
-      verified: true
-    },
-    {
-      date: '23 Aug 2025',
-      time: '09:38 AM',
-      photo: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=300&h=300&fit=crop&crop=face',
-      outfit: 'Red Plaid Button-Down Shirt',
-      verified: true
-    },
-    {
-      date: '22 Aug 2025',
-      time: '09:41 AM',
-      photo: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300&h=300&fit=crop&crop=face',
-      outfit: 'Charcoal Gray Crew Neck',
-      verified: true
-    },
-    {
-      date: '21 Aug 2025',
-      time: '09:35 AM',
-      photo: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=300&h=300&fit=crop&crop=face',
-      outfit: 'Mustard Yellow Casual Shirt',
-      verified: true
-    },
-    {
-      date: '20 Aug 2025',
-      time: '09:40 AM',
-      photo: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300&h=300&fit=crop&crop=face',
-      outfit: 'Classic Black Formal Suit',
-      verified: true
-    },
-  ];
+  useEffect(() => {
+    if (person) {
+      fetchPersonAppearances(person.person_id).then(snaps => {
+        setSnapshots(snaps);
+      });
+    }
+  }, [person?.person_id]);
 
   return (
     <div className="space-y-6">
@@ -167,17 +139,17 @@ export const DailyAppearanceVault: React.FC = () => {
       <div className="glass-panel rounded-2xl p-6 border border-slate-800 space-y-4">
         <h3 className="font-bold text-sm text-white">Historical Wardrobe & Look Timeline</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {historicalSnapshots.map((snap, idx) => (
+          {snapshots.map((snap, idx) => (
             <div key={idx} className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2.5">
               <div className="relative aspect-square rounded-xl overflow-hidden border border-slate-700">
-                <img src={snap.photo} alt={snap.date} className="w-full h-full object-cover" />
+                <img src={snap.photo_url} alt={snap.date} className="w-full h-full object-cover" />
                 <span className="absolute bottom-1 right-1 bg-black/80 text-[9px] font-mono px-1.5 py-0.5 rounded text-emerald-400">
                   {snap.time}
                 </span>
               </div>
               <div>
                 <div className="text-xs font-bold text-white">{snap.date}</div>
-                <div className="text-[11px] text-slate-400 truncate">{snap.outfit}</div>
+                <div className="text-[11px] text-slate-400 truncate">{snap.outfit_description}</div>
               </div>
             </div>
           ))}

@@ -1,12 +1,14 @@
 import React from 'react';
 import { 
   LayoutDashboard, Map, UserCheck, History, ShieldAlert, 
-  Camera, BarChart3, UserPlus, PenTool, Building2, Layers 
+  Camera, BarChart3, UserPlus, PenTool, Building2, Layers,
+  GraduationCap
 } from 'lucide-react';
 import { useSecurity } from '../../context/SecurityContext';
 
 export type NavTab = 
   | 'dashboard' 
+  | 'attendance'
   | 'map' 
   | 'blueprint'
   | 'tracking' 
@@ -22,19 +24,21 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
-  const { alerts, stats, activeBuilding } = useSecurity();
+  const { alerts, stats, activeBuilding, attendanceRecords } = useSecurity();
   const activeAlertsCount = alerts.filter(a => a.status === 'Active').length;
+  const verifiedCount = attendanceRecords.filter(a => a.status === 'Verified').length;
 
   const navItems = [
     { id: 'dashboard', label: 'Live Dashboard', icon: LayoutDashboard, badge: null },
-    { id: 'map', label: '2D Floor Map', icon: Map, badge: `${stats.total_in_building}` },
+    { id: 'attendance', label: 'Attendance Roster', icon: GraduationCap, badge: `${verifiedCount}/${attendanceRecords.length}`, badgeColor: 'bg-emerald-600' },
+    { id: 'map', label: '2D Campus Map', icon: Map, badge: `${stats.total_in_building}` },
     { id: 'blueprint', label: 'Blueprint Studio', icon: PenTool, badge: 'CAD', badgeColor: 'bg-purple-600' },
-    { id: 'tracking', label: 'Person Tracking', icon: UserCheck, badge: null },
+    { id: 'tracking', label: 'Student & Staff Dossier', icon: UserCheck, badge: null },
     { id: 'appearance', label: 'Appearance Vault', icon: History, badge: 'AI' },
-    { id: 'enrollment', label: 'Person Enrollment', icon: UserPlus, badge: stats.unknown > 0 ? `${stats.unknown}` : null, badgeColor: 'bg-purple-500' },
-    { id: 'rules', label: 'Rules & Alerts', icon: ShieldAlert, badge: activeAlertsCount > 0 ? `${activeAlertsCount}` : null, badgeColor: 'bg-red-500' },
+    { id: 'enrollment', label: 'Student Enrollment', icon: UserPlus, badge: stats.unknown > 0 ? `${stats.unknown}` : null, badgeColor: 'bg-purple-500' },
+    { id: 'rules', label: 'Security & Alerts', icon: ShieldAlert, badge: activeAlertsCount > 0 ? `${activeAlertsCount}` : null, badgeColor: 'bg-red-500' },
     { id: 'cameras', label: 'Camera Matrix', icon: Camera, badge: `${stats.cameras_online}` },
-    { id: 'analytics', label: 'Analytics & ROI', icon: BarChart3, badge: null },
+    { id: 'analytics', label: 'Institutional ROI', icon: BarChart3, badge: null },
   ];
 
   return (

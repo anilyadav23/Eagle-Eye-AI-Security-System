@@ -1,33 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   UserCheck, Search, MapPin, Camera, Clock, 
-  ArrowRight, ShieldCheck, Radio, Navigation, Eye 
+  ArrowRight, ShieldCheck, Radio, Navigation, Eye,
+  GraduationCap, CheckCircle2, AlertTriangle
 } from 'lucide-react';
 import { useSecurity } from '../../context/SecurityContext';
 import { MovementEvent } from '../../types';
 
 export const PersonTrackingView: React.FC = () => {
-  const { persons, selectedPerson, setSelectedPersonId } = useSecurity();
+  const { persons, selectedPerson, setSelectedPersonId, fetchPersonTimeline } = useSecurity();
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isLiveFollowActive, setIsLiveFollowActive] = useState<boolean>(true);
+  const [timeline, setTimeline] = useState<MovementEvent[]>([]);
 
-  // Mock sample movement history matching Sheet 6
-  const sampleTimeline: MovementEvent[] = [
-    { id: 'm1', person_id: 'P-10087', track_id: 'TRK-25-000567', timestamp: '09:42:11 AM', camera_id: 'CAM-001', building: 'Building A', floor: 'Floor 1', room: 'Main Entrance', event_type: 'ENTER', dwell_time_seconds: 51 },
-    { id: 'm2', person_id: 'P-10087', track_id: 'TRK-25-000567', timestamp: '09:43:02 AM', camera_id: 'CAM-003', building: 'Building A', floor: 'Floor 1', room: 'Reception', event_type: 'ENTER', dwell_time_seconds: 135 },
-    { id: 'm3', person_id: 'P-10087', track_id: 'TRK-25-000567', timestamp: '09:45:17 AM', camera_id: 'CAM-007', building: 'Building A', floor: 'Floor 1', room: 'Elevator Lobby', event_type: 'ENTER', dwell_time_seconds: 45 },
-    { id: 'm4', person_id: 'P-10087', track_id: 'TRK-25-000567', timestamp: '09:46:02 AM', camera_id: 'CAM-014', building: 'Building A', floor: 'Floor 2', room: 'Floor 2 - Corridor', event_type: 'ENTER', dwell_time_seconds: 122 },
-    { id: 'm5', person_id: 'P-10087', track_id: 'TRK-25-000567', timestamp: '09:48:04 AM', camera_id: 'CAM-018', building: 'Building A', floor: 'Floor 2', room: 'Office 201', event_type: 'ENTER', dwell_time_seconds: 2047 },
-    { id: 'm6', person_id: 'P-10087', track_id: 'TRK-25-000567', timestamp: '10:22:11 AM', camera_id: 'CAM-021', building: 'Building A', floor: 'Floor 2', room: 'Meeting Room', event_type: 'ENTER', dwell_time_seconds: 150 },
-  ];
+  const activePerson = selectedPerson || persons[0];
+
+  useEffect(() => {
+    if (activePerson) {
+      fetchPersonTimeline(activePerson.person_id).then(events => {
+        setTimeline(events);
+      });
+    }
+  }, [activePerson?.person_id]);
 
   const filteredPersons = persons.filter(p => 
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     p.person_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.track_id.toLowerCase().includes(searchQuery.toLowerCase())
+    p.track_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (p.student_id && p.student_id.toLowerCase().includes(searchQuery.toLowerCase()))
   );
-
-  const activePerson = selectedPerson || persons[0];
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -116,12 +117,24 @@ export const PersonTrackingView: React.FC = () => {
                       <span className="text-xs font-bold font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
                         <ShieldCheck className="w-3 h-3" /> {activePerson.status}
                       </span>
+                      {activePerson.attendance_status && (
+                        <span className={`text-xs font-bold font-mono px-2 py-0.5 rounded-full border flex items-center gap-1 ${
+                          activePerson.attendance_status === 'Verified' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' :
+                          activePerson.attendance_status === 'Late' ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' :
+                          activePerson.attendance_status === 'Proxy Flagged' ? 'bg-red-500/20 text-red-300 border-red-500/40 animate-pulse' :
+                          'bg-sky-500/20 text-sky-300 border-sky-500/40'
+                        }`}>
+                          <CheckCircle2 className="w-3 h-3" /> Att: {activePerson.attendance_status}
+                        </span>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-xs font-mono text-slate-300">
-                      <div><span className="text-slate-500">Person ID:</span> {activePerson.person_id}</div>
+                      <div><span className="text-slate-500">ID / Token:</span> {activePerson.student_id || activePerson.person_id}</div>
                       <div><span className="text-slate-500">Track ID:</span> {activePerson.track_id}</div>
                       <div><span className="text-slate-500">Role:</span> {activePerson.role}</div>
+                      {activePerson.department && <div><span className="text-slate-500">Dept:</span> {activePerson.department}</div>}
+                      {activePerson.course && <div><span className="text-slate-500">Course:</span> {activePerson.course}</div>}
                       <div><span className="text-slate-500">Mobile:</span> {activePerson.mobile}</div>
                     </div>
                   </div>
@@ -191,8 +204,8 @@ export const PersonTrackingView: React.FC = () => {
 
               {/* Step by Step Timeline List */}
               <div className="relative pl-6 space-y-4 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-700">
-                {sampleTimeline.map((item, index) => {
-                  const isLast = index === sampleTimeline.length - 1;
+                {timeline.map((item, index) => {
+                  const isLast = index === timeline.length - 1;
 
                   return (
                     <div key={item.id} className="relative flex items-center justify-between">

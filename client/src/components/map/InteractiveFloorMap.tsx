@@ -32,6 +32,7 @@ export const InteractiveFloorMap: React.FC<InteractiveFloorMapProps> = ({
   const filteredPersons = persons.filter(p => {
     if (filterType === 'authorized') return p.status === 'Authorized';
     if (filterType === 'alert') return p.status === 'Alert';
+    if (filterType === 'academic') return p.role === 'Student' || p.role === 'Professor' || p.role === 'Faculty';
     if (filterType === 'visitor') return p.role === 'Visitor';
     return true;
   });
@@ -124,6 +125,14 @@ export const InteractiveFloorMap: React.FC<InteractiveFloorMapProps> = ({
               }`}
             >
               Authorized
+            </button>
+            <button
+              onClick={() => setFilterType('academic')}
+              className={`px-2.5 py-1 rounded-lg font-medium ${
+                filterType === 'academic' ? 'bg-purple-950 text-purple-300' : 'text-slate-400'
+              }`}
+            >
+              Students & Faculty
             </button>
             <button
               onClick={() => setFilterType('alert')}

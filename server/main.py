@@ -2,6 +2,7 @@ import asyncio
 import cv2
 import base64
 import os
+from datetime import datetime
 from contextlib import asynccontextmanager
 from typing import List, Optional
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Response, UploadFile, File, Form, Request
@@ -19,7 +20,7 @@ from models.schemas import (
     RoomZone, SecurityAlert, SecurityRule, PersonEnrollmentRequest,
     BuildingStats, AlertStatus, AlertType, CameraConnectRequest, CameraTestRequest,
     BuildingProfile, FloorProfile, BuildingCreateRequest, FloorCreateRequest,
-    RoomCreateRequest, BlueprintSaveRequest
+    RoomCreateRequest, BlueprintSaveRequest, AttendanceRecord, AttendanceMarkRequest, AttendanceStatus
 )
 from services.simulation_engine import engine
 from services.camera_streamer import camera_streamer
@@ -490,3 +491,95 @@ def get_analytics_report():
             "typical_payback_months": "6-12 Months"
         }
     }
+
+# --- Smart Classroom Attendance & Intelligence Endpoints ---
+
+@app.get("/api/attendance", response_model=List[AttendanceRecord])
+def list_attendance(course: Optional[str] = None, status: Optional[str] = None):
+    """Retrieve the real-time biometric classroom attendance roster."""
+    return engine.get_attendance(course=course, status=status)
+
+@app.post("/api/attendance/mark", response_model=AttendanceRecord)
+async def mark_attendance_status(req: AttendanceMarkRequest):
+    """Marks or updates a student's biometric attendance status."""
+    rec = engine.mark_attendance(
+        person_id=req.person_id,
+        status=req.status,
+        notes=req.notes,
+        course=req.course,
+        room=req.room
+    )
+    db_manager.log_audit(
+        action="ATTENDANCE_MARKED",
+        entity_type="ATTENDANCE",
+        entity_id=req.person_id,
+        details={"status": req.status.value, "course": req.course}
+    )
+    await engine.broadcast({
+        "type": "ATTENDANCE_UPDATED",
+        "data": rec.model_dump()
+    })
+    return rec
+
+@app.post("/api/attendance/scan")
+async def trigger_attendance_scan():
+    """Triggers instant multi-camera biometric face verification scan across all classrooms."""
+    updated = engine.run_attendance_scan()
+    db_manager.log_audit(action="ATTENDANCE_SCAN_TRIGGERED", entity_type="SYSTEM", details={"verified_count": len(updated)})
+    await engine.broadcast({
+        "type": "ATTENDANCE_SCAN_COMPLETED",
+        "data": [r.model_dump() for r in updated]
+    })
+    return {
+        "success": True,
+        "message": f"Biometric attendance scan executed: {len(updated)} student/faculty vectors verified.",
+        "records": updated
+    }
+
+@app.get("/api/attendance/summary")
+def get_attendance_summary(course: Optional[str] = "CS301 - Computer Vision & AI"):
+    """Returns aggregated smart class attendance intelligence & KPI metrics."""
+    records = engine.get_attendance(course=course)
+    total = len(records)
+    verified = sum(1 for r in records if r.status in [AttendanceStatus.VERIFIED, AttendanceStatus.PRESENT])
+    late = sum(1 for r in records if r.status == AttendanceStatus.LATE)
+    proxy = sum(1 for r in records if r.status == AttendanceStatus.PROXY_FLAGGED)
+    absent = sum(1 for r in records if r.status == AttendanceStatus.ABSENT)
+    attendance_rate = round((verified / max(1, total)) * 100, 1)
+
+    return {
+        "course": course,
+        "total_enrolled": total,
+        "verified_present": verified,
+        "late_arrivals": late,
+        "proxy_flagged": proxy,
+        "absent": absent,
+        "attendance_rate_pct": attendance_rate,
+        "active_classroom": "Lecture Hall 101",
+        "active_camera": "CAM-021",
+        "last_scan_time": datetime.now().strftime("%I:%M:%S %p")
+    }
+
+@app.get("/api/attendance/export")
+def export_attendance_csv(course: Optional[str] = None):
+    """Generates downloadable CSV attendance report for academic compliance and audit."""
+    records = engine.get_attendance(course=course)
+    csv_lines = [
+        "Record ID,Student/Faculty ID,Full Name,Role,Department,Course,Classroom Zone,Attendance Status,Time In,Biometric Confidence,Verified Camera,Notes"
+    ]
+    for r in records:
+        conf = f"{int(r.confidence_score * 100)}%"
+        dept = r.department or "N/A"
+        course_name = r.course or "N/A"
+        notes = r.notes or ""
+        csv_lines.append(
+            f'"{r.id}","{r.student_id or r.person_id}","{r.name}","{r.role}","{dept}","{course_name}","{r.room}","{r.status.value}","{r.timestamp}","{conf}","{r.verified_camera_id}","{notes}"'
+        )
+    csv_data = "\n".join(csv_lines)
+    return Response(
+        content=csv_data,
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f"attachment; filename=eagle_eye_smart_class_attendance_{datetime.now().strftime('%Y%m%d')}.csv"
+        }
+    )

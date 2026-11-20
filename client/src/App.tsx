@@ -11,6 +11,7 @@ import { CameraMatrixView } from './components/cameras/CameraMatrixView';
 import { AnalyticsDashboard } from './components/analytics/AnalyticsDashboard';
 import { BlueprintStudio } from './components/blueprint/BlueprintStudio';
 import { PersonEnrollmentView } from './components/enrollment/PersonEnrollmentView';
+import { AttendanceIntelligenceView } from './components/attendance/AttendanceIntelligenceView';
 import { EnrollmentModal } from './components/enrollment/EnrollmentModal';
 import { ConnectCameraModal } from './components/cameras/ConnectCameraModal';
 
@@ -31,6 +32,7 @@ const AppContent: React.FC = () => {
         <main className="flex-1 overflow-y-auto p-6 bg-slate-950/60">
           <div className="max-w-7xl mx-auto space-y-6">
             {activeTab === 'dashboard' && <LiveDashboard setActiveTab={setActiveTab} />}
+            {activeTab === 'attendance' && <AttendanceIntelligenceView />}
             {activeTab === 'map' && <InteractiveFloorMap onSelectPerson={() => setActiveTab('tracking')} onOpenStudio={() => setActiveTab('blueprint')} />}
             {activeTab === 'blueprint' && <BlueprintStudio />}
             {activeTab === 'tracking' && <PersonTrackingView />}

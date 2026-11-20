@@ -35,7 +35,7 @@ export const BlueprintStudio: React.FC = () => {
   // Style State
   const [activeColor, setActiveColor] = useState<string>('#38bdf8');
   const [isRestricted, setIsRestricted] = useState<boolean>(false);
-  const [zoneName, setZoneName] = useState<string>('Office Zone');
+  const [zoneName, setZoneName] = useState<string>('Smart Classroom / Lab Zone');
   const [maxCapacity, setMaxCapacity] = useState<number>(10);
   const [snapToGrid, setSnapToGrid] = useState<boolean>(true);
   const [gridSize, setGridSize] = useState<number>(20);

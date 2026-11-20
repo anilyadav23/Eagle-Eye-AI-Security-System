@@ -34,7 +34,7 @@ export const Header: React.FC = () => {
   const handleQuickWebcam = async () => {
     try {
       setWebcamFeedback('Connecting Webcam...');
-      await connectLaptopWebcam(0, 'Server Room');
+      await connectLaptopWebcam(0, 'Lecture Hall 101');
       setWebcamFeedback('Webcam Live!');
       setTimeout(() => setWebcamFeedback(null), 3000);
     } catch (e) {
