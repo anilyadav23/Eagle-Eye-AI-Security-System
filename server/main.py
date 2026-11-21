@@ -583,3 +583,102 @@ def export_attendance_csv(course: Optional[str] = None):
             "Content-Disposition": f"attachment; filename=eagle_eye_smart_class_attendance_{datetime.now().strftime('%Y%m%d')}.csv"
         }
     )
+
+# --- Academic Timetable & Registration Approval Endpoints (Pages 1-10) ---
+
+@app.get("/api/academic/timetable")
+def get_department_timetable():
+    """Returns scheduled regular, extra, and combined classroom timetable slots."""
+    return [
+        {
+            "id": "slot-1",
+            "course_code": "CS101",
+            "course_name": "Database Management Systems (DBMS)",
+            "room": "Room 101",
+            "time_slot": "09:00 AM - 10:00 AM",
+            "teacher": "Dr. Meena",
+            "class_type": "Regular Class",
+            "section": "Section A",
+            "year": "2nd Year",
+            "semester": "3rd Sem",
+            "expected_count": 48,
+            "status": "Completed",
+            "camera_id": "CAM-001"
+        },
+        {
+            "id": "slot-2",
+            "course_code": "CS102",
+            "course_name": "Operating Systems (OS)",
+            "room": "Room 102",
+            "time_slot": "10:00 AM - 11:00 AM",
+            "teacher": "Prof. Sharma",
+            "class_type": "Regular Class",
+            "section": "Section A",
+            "year": "2nd Year",
+            "semester": "3rd Sem",
+            "expected_count": 45,
+            "status": "Completed",
+            "camera_id": "CAM-002"
+        },
+        {
+            "id": "slot-3",
+            "course_code": "CS201",
+            "course_name": "Design & Analysis of Algorithms (DAA)",
+            "room": "Room 201",
+            "time_slot": "01:00 PM - 02:00 PM",
+            "teacher": "Dr. Rajesh Iyer",
+            "class_type": "Combined Class (Sec A + B)",
+            "section": "Combined",
+            "year": "2nd Year",
+            "semester": "3rd Sem",
+            "expected_count": 90,
+            "status": "In-Progress",
+            "camera_id": "CAM-021"
+        },
+        {
+            "id": "slot-4",
+            "course_code": "CS202",
+            "course_name": "Computer Networks (CN)",
+            "room": "Room 202",
+            "time_slot": "02:00 PM - 03:00 PM",
+            "teacher": "Prof. Sarah Khan",
+            "class_type": "Regular Class",
+            "section": "Section A",
+            "year": "2nd Year",
+            "semester": "3rd Sem",
+            "expected_count": 44,
+            "status": "Upcoming",
+            "camera_id": "CAM-022"
+        }
+    ]
+
+@app.get("/api/academic/requests")
+def list_student_requests():
+    """Lists registration and subject change requests awaiting HOD/Teacher verification."""
+    return [
+        {
+            "id": "REQ-2026-001",
+            "student_name": "Arjun Kumar",
+            "roll_no": "CS23A001",
+            "registration_no": "REG2025001",
+            "branch": "Computer Science",
+            "year": "2nd Year",
+            "semester": "3rd Semester",
+            "section": "A",
+            "status": "Pending",
+            "request_type": "New Registration"
+        },
+        {
+            "id": "REQ-2026-002",
+            "student_name": "Priya Sharma",
+            "roll_no": "21CSE002",
+            "registration_no": "REG2024098",
+            "branch": "Computer Science",
+            "year": "3rd Year",
+            "semester": "5th Semester",
+            "section": "B",
+            "status": "Pending",
+            "request_type": "Photo Update Request"
+        }
+    ]
+
