@@ -77,6 +77,13 @@ async def login(req: LoginRequest, request: Request):
             detail="Invalid username or password."
         )
 
+    # If the user is a student, ensure their registration has been approved
+    if user.get("role") == "Student" and user.get("is_active") == 0:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your registration profile is currently pending approval by HOD or Faculty Teacher. Once approved, you will be able to sign in."
+        )
+
     access_token = create_access_token(
         data={"sub": user["id"], "username": user["username"], "role": user["role"]},
         expires_delta=timedelta(minutes=settings.JWT_EXPIRE_MINUTES)
@@ -118,52 +125,29 @@ async def get_me(current_user: dict = Depends(get_current_user)):
     }
 
 @auth_router.post("/register")
-async def register_user(req: RegisterUserRequest, request: Request):
-    """Allow students and teachers to self-register for the first time or admin creation."""
+async def register_user(req: RegisterUserRequest, request: Request, current_user: dict = Depends(get_current_user)):
     # Check if username or email exists
-    existing = db_manager.get_user_by_username(req.username.strip())
+    existing = db_manager.get_user_by_username(req.username)
     if existing:
-        raise HTTPException(status_code=400, detail="Username already in use.")
+        raise HTTPException(status_code=400, detail="Username or email already in use.")
 
     pwd_hash = get_password_hash(req.password)
-    # Default newly registered roles to Student or Teacher if specified
-    allowed_roles = ["Student", "Teacher", "HOD", "Guard", "Admin"]
-    role = req.role if req.role in allowed_roles else "Student"
+    
+    # Students start with is_active = 0 pending HOD/Teacher approval
+    is_active_initial = 0 if req.role == "Student" else 1
 
     new_user = db_manager.create_user({
-        "username": req.username.strip(),
-        "email": str(req.email).strip(),
+        "username": req.username,
+        "email": str(req.email),
         "password_hash": pwd_hash,
-        "role": role,
-        "full_name": req.full_name or req.username
+        "role": req.role,
+        "full_name": req.full_name or req.username,
+        "is_active": is_active_initial
     })
 
-    # If registered as Student, create an initial Person entity so attendance & face recognition track them
-    if role == "Student":
-        try:
-            from models.schemas import Person, PersonRole, AccessStatus
-            person_rec = Person(
-                id=f"p-{new_user['id']}",
-                person_id=f"STU-{new_user['username'].upper()}",
-                student_id=f"STU-{new_user['username'].upper()}",
-                track_id=f"TRK-{new_user['username'].upper()}",
-                name=req.full_name or req.username,
-                email=str(req.email),
-                role=PersonRole.STUDENT,
-                department="Computer Science & Engineering",
-                course="CS301 - Computer Vision & AI",
-                semester="Semester 3",
-                status=AccessStatus.AUTHORIZED,
-                attendance_status="Present",
-                notes="Self-registered Student Profile"
-            )
-            db_manager.save_person(person_rec)
-        except Exception:
-            pass
-
     db_manager.log_audit(
-        user_id=new_user["id"],
-        action="USER_SELF_REGISTERED",
+        user_id=current_user["id"],
+        action="USER_CREATED",
         entity_type="USER",
         entity_id=new_user["id"],
         details={"username": new_user["username"], "role": new_user["role"]},
@@ -172,7 +156,7 @@ async def register_user(req: RegisterUserRequest, request: Request):
 
     return {
         "success": True,
-        "message": f"User {new_user['username']} registered successfully. You can now log in.",
+        "message": f"User {new_user['username']} created successfully.",
         "user": {
             "id": new_user["id"],
             "username": new_user["username"],
