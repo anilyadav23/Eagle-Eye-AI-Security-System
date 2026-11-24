@@ -11,8 +11,8 @@ export const LoginPage: React.FC<LoginModalProps> = ({ onSuccess }) => {
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
 
   // Login form state
-  const [username, setUsername] = useState('hod');
-  const [password, setPassword] = useState('hod123');
+  const [username, setUsername] = useState('HODECC');
+  const [password, setPassword] = useState('Anil@2026');
   const [selectedRole, setSelectedRole] = useState<UserRole>('HOD');
   
   // Registration form state
@@ -29,8 +29,8 @@ export const LoginPage: React.FC<LoginModalProps> = ({ onSuccess }) => {
   const quickRoles: { role: UserRole; username: string; pass: string; title: string; desc: string; icon: any; color: string }[] = [
     {
       role: 'HOD',
-      username: 'hod',
-      pass: 'hod123',
+      username: 'HODECC',
+      pass: 'Anil@2026',
       title: 'HOD / Department Head',
       desc: 'Department Oversight: Approvals, Timetables, CCTV Matrix & Roster Management',
       icon: Building2,

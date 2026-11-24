@@ -53,9 +53,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Standalone fallback demo credentials when running on static hosts without live backend API
   const DEMO_FALLBACK_USERS: Record<string, { pass: string; user: AuthUser }> = {
+    hodecc: {
+      pass: 'Anil@2026',
+      user: { id: 'usr-hod', username: 'HODECC', email: 'hodecc@campus.edu', role: 'HOD', full_name: 'ECEHOD' }
+    },
     hod: {
-      pass: 'hod123',
-      user: { id: 'usr-hod', username: 'hod', email: 'hod@campus.edu', role: 'HOD', full_name: 'Dr. Rajesh Sharma (HOD)' }
+      pass: 'Anil@2026',
+      user: { id: 'usr-hod', username: 'HODECC', email: 'hodecc@campus.edu', role: 'HOD', full_name: 'ECEHOD' }
     },
     teacher: {
       pass: 'teacher123',
