@@ -298,10 +298,19 @@ def init_db():
     student_hash = get_password_hash("student123")
     admin_hash = get_password_hash("admin123")
 
-    # Ensure role accounts exist for standard role logins
+    common_fac_hash = get_password_hash("123456")
+
+    # Ensure role accounts exist for standard role logins and timetable faculty
     default_users = [
-        ("usr-hod", "HODECC", "hodecc@campus.edu", hod_hash, "HOD", "ECEHOD", 1, now_str),
-        ("usr-teacher", "teacher", "teacher@campus.edu", teacher_hash, "Teacher", "Prof. Anjali Sen (Faculty)", 1, now_str),
+        ("usr-hod", "HODECC", "hodecc@campus.edu", hod_hash, "HOD", "Prof. Kapil Parihar (HOD)", 1, now_str),
+        ("usr-fac-ltv", "LTV", "ltv@campus.edu", common_fac_hash, "Teacher", "Lata Vaishnav", 1, now_str),
+        ("usr-fac-kpc", "KPC", "kpc@campus.edu", common_fac_hash, "Teacher", "Kapoor Chand", 1, now_str),
+        ("usr-fac-ksm", "KSM", "ksm@campus.edu", common_fac_hash, "Teacher", "Khushbu Mehta", 1, now_str),
+        ("usr-fac-ds", "DS", "ds@campus.edu", common_fac_hash, "Teacher", "Dhirendra Sharma", 1, now_str),
+        ("usr-fac-kp", "KP", "kp@campus.edu", common_fac_hash, "Teacher", "Kapil Parihar", 1, now_str),
+        ("usr-fac-ns", "NS", "ns@campus.edu", common_fac_hash, "Teacher", "Naginder Singh", 1, now_str),
+        ("usr-fac-yk", "YK", "yk@campus.edu", common_fac_hash, "Teacher", "Yazdan Khan", 1, now_str),
+        ("usr-teacher", "teacher", "teacher@campus.edu", common_fac_hash, "Teacher", "Lata Vaishnav (Faculty)", 1, now_str),
         ("usr-student", "student", "student@campus.edu", student_hash, "Student", "Rahul Sharma (Roll: CS23A001)", 1, now_str),
         ("usr-admin", "admin", "admin@eagleeye.security", admin_hash, "Admin", "System Security Administrator", 1, now_str),
     ]
