@@ -475,32 +475,62 @@ class RealSecurityEngine:
         room: Optional[str] = None
     ) -> AttendanceRecord:
         person = self.persons.get(person_id)
+        if not person:
+            u = db_manager.get_user_by_username(person_id)
+            if u:
+                from models.schemas import PersonRole, AccessStatus
+                person = Person(
+                    id=u["id"],
+                    person_id=u["username"],
+                    track_id=f"TRK-{u['username']}",
+                    name=u.get("full_name") or u["username"],
+                    mobile=u.get("phone", ""),
+                    email=u.get("email", ""),
+                    department=u.get("department", "Electronics & Communication Engineering"),
+                    course=course or "7ECC41A - CCDN",
+                    semester=u.get("semester", "7th Semester"),
+                    id_proof_type="Student ID",
+                    id_proof_number=u["username"],
+                    role=PersonRole.STUDENT,
+                    permission_type="Student Enrolled Clearance",
+                    valid_from="2024-01-01 00:00",
+                    valid_to="2028-12-31 23:59",
+                    allowed_zones=["Room EC-6", "Lab EC-10", "Lab EC-11", "Lab L-5"],
+                    photo_url=f"/students/{u['username']}_face.jpg",
+                    status=AccessStatus.AUTHORIZED
+                )
+
         existing = next((r for r in self.attendance_records if r.person_id == person_id), None)
         now_str = datetime.now().strftime("%I:%M:%S %p")
         if existing:
             existing.status = status
+            existing.timestamp = now_str
             if notes:
                 existing.notes = notes
             if course:
                 existing.course = course
             if room:
                 existing.room = room
+            if person and person.name:
+                existing.name = person.name
+                existing.photo_url = person.photo_url
             rec = existing
         else:
+            resolved_name = person.name if person else (person_id if person_id.startswith("24U") or person_id.startswith("STU") else "Unverified User")
             rec = AttendanceRecord(
                 id=f"att-{person_id}-{int(time.time())}",
                 person_id=person_id,
-                student_id=person.student_id if person else person_id,
-                name=person.name if person else "Unknown Student",
+                student_id=person.student_id if (person and hasattr(person, 'student_id')) else person_id,
+                name=resolved_name,
                 role=person.role.value if person else "Student",
-                department=person.department if person else "Computer Science",
-                course=course or (person.course if person else "CS301 - Computer Vision & AI"),
-                room=room or (person.current_room if person else "Lecture Hall 101"),
+                department=person.department if person else "Electronics & Communication Engineering",
+                course=course or (person.course if person else "7ECC41A - CCDN"),
+                room=room or (person.current_room if person else "Room EC-6"),
                 status=status,
                 timestamp=now_str,
                 confidence_score=0.98,
-                photo_url=person.photo_url if person else "",
-                verified_camera_id=person.current_camera_id if person else "CAM-021",
+                photo_url=person.photo_url if person else f"/students/{person_id}_face.jpg",
+                verified_camera_id=person.current_camera_id if person else "CAM-006",
                 notes=notes or f"Attendance status updated to {status.value}"
             )
             self.attendance_records.insert(0, rec)
